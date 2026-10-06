@@ -3,6 +3,7 @@ import sys
 import pygame as pg
 import random
 import time
+import math
 WIDTH, HEIGHT = 1100, 650
 DELTA = { # 押下キーと移動量の対応表
     pg.K_UP: (0, -5),
@@ -61,7 +62,7 @@ def init_bb_imgs() -> tuple[list[pg.Surface], list[int]]:
         pg.draw.circle(bb_img, (255, 0, 0), (10 * r, 10 * r), 10 * r)
         bb_img.set_colorkey((0, 0, 0))  # 黒い部分を透明にする
         bb_imgs.append(bb_img)
-    bb_accs = [a for a in range(1, 11)]
+    bb_accs = [1 + a /5 for a in range(1, 11)]
     return bb_imgs, bb_accs
 
 def get_kk_imgs() -> dict[tuple[int, int], pg.Surface]:
@@ -84,6 +85,15 @@ def get_kk_imgs() -> dict[tuple[int, int], pg.Surface]:
         (+5, +5): pg.transform.rotozoom(kk_img_flip, -45, 0.9),  # 右下
     }
     return kk_dict
+def calc_orientation(org: pg.Rect, dst: pg.Rect, current_xy: tuple[float, float]) -> tuple[float, float]:
+    diff_x = dst.centerx - org.centerx  # 爆弾から見たこうかとんの方向
+    diff_y = dst.centery - org.centery
+    norm = math.hypot(diff_x, diff_y)  # 距離（差ベクトルのノルム）
+    if norm < 300:  # 近すぎると即ゲームオーバーになるので，向きを変えない
+        return current_xy
+    speed = math.sqrt(50)  # 元の速度ベクトル(5, 5)のノルム
+    return diff_x / norm * speed, diff_y / norm * speed
+
 def main():
     pg.display.set_caption("逃げろ！こうかとん")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
@@ -114,8 +124,10 @@ def main():
                 sum_mv[0] += mv[0]
                 sum_mv[1] += mv[1]
                 kk_img = kk_imgs[tuple(sum_mv)]  # 移動方向に合った画像を選ぶ
+                vx, vy = calc_orientation(bb_rct, kk_rct, (vx, vy))
         kk_rct.move_ip(sum_mv)
         if check_bound(kk_rct) != (True, True): 
+            
             kk_rct.move_ip(-sum_mv[0], -sum_mv[1])
         screen.blit(kk_img, kk_rct)
         idx = min(tmr // 500, 9)  # 500フレームごとに1段階進む
