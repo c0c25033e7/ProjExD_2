@@ -46,6 +46,20 @@ def gameover(screen: pg.Surface) -> None:
     screen.blit(bo_img, [0, 0])
     pg.display.update()
     time.sleep(5)
+def init_bb_imgs() -> tuple[list[pg.Surface], list[int]]:
+    """
+    引数：なし
+    戻り値：タプル（大きさ違いの爆弾Surfaceのリスト，加速度のリスト）
+    10段階の爆弾Surfaceと加速度を用意する
+    """
+    bb_imgs = []
+    for r in range(1, 11):
+        bb_img = pg.Surface((20 * r, 20 * r))
+        pg.draw.circle(bb_img, (255, 0, 0), (10 * r, 10 * r), 10 * r)
+        bb_img.set_colorkey((0, 0, 0))  # 黒い部分を透明にする
+        bb_imgs.append(bb_img)
+    bb_accs = [a for a in range(1, 11)]
+    return bb_imgs, bb_accs
 def main():
     pg.display.set_caption("逃げろ！こうかとん")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
@@ -53,9 +67,9 @@ def main():
     kk_img = pg.transform.rotozoom(pg.image.load("fig/3.png"), 0, 0.9)
     kk_rct = kk_img.get_rect()
     kk_rct.center = 300, 200
-    bb_img = pg.Surface((20, 20)) # 爆弾用の空Surface
-    pg.draw.circle(bb_img, (255, 0, 0), (10, 10), 10) # 赤い半径10の円 
-    bb_img.set_colorkey((0, 0, 0))  # 黒い部分を透明にする
+    bb_imgs, bb_accs = init_bb_imgs()
+    bb_img = bb_imgs[0]
+    bb_rct = bb_img.get_rect()
     bb_rct = bb_img.get_rect()
     bb_rct.centerx = random.randint(10, WIDTH - 10)
     bb_rct.centery = random.randint(10, HEIGHT - 10)
@@ -78,7 +92,13 @@ def main():
         if check_bound(kk_rct) != (True, True): 
             kk_rct.move_ip(-sum_mv[0], -sum_mv[1])
         screen.blit(kk_img, kk_rct)
-        bb_rct.move_ip(vx, vy)
+        idx = min(tmr // 500, 9)  # 500フレームごとに1段階進む
+        bb_img = bb_imgs[idx]
+        bb_rct.width = bb_img.get_rect().width  # 大きさに合わせてRectを更新
+        bb_rct.height = bb_img.get_rect().height
+        avx = vx * bb_accs[idx]
+        avy = vy * bb_accs[idx]
+        bb_rct.move_ip(avx, avy)
         yoko, tate = check_bound(bb_rct)
         if not yoko:  # 横方向にはみ出たら反転
             vx *= -1
