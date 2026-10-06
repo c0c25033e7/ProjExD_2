@@ -10,6 +10,7 @@ DELTA = { # 押下キーと移動量の対応表
     pg.K_LEFT: (-5, 0),
     pg.K_RIGHT: (+5, 0),
 }
+
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 def check_bound(obj_rct: pg.Rect) -> tuple[bool, bool]:
     """
@@ -23,6 +24,7 @@ def check_bound(obj_rct: pg.Rect) -> tuple[bool, bool]:
     if obj_rct.top < 0 or HEIGHT < obj_rct.bottom:  # 縦方向判定
         tate = False
     return yoko, tate
+
 def gameover(screen: pg.Surface) -> None:
     """
     引数：画面Surface
@@ -46,6 +48,7 @@ def gameover(screen: pg.Surface) -> None:
     screen.blit(bo_img, [0, 0])
     pg.display.update()
     time.sleep(5)
+
 def init_bb_imgs() -> tuple[list[pg.Surface], list[int]]:
     """
     引数：なし
@@ -60,6 +63,27 @@ def init_bb_imgs() -> tuple[list[pg.Surface], list[int]]:
         bb_imgs.append(bb_img)
     bb_accs = [a for a in range(1, 11)]
     return bb_imgs, bb_accs
+
+def get_kk_imgs() -> dict[tuple[int, int], pg.Surface]:
+    """
+    引数：なし
+    戻り値：辞書（キー：移動量の合計値タプル，値：対応する向きのこうかとんSurface）
+    8方向と停止時のこうかとん画像を用意する
+    """
+    kk_img = pg.image.load("fig/3.png")  # 左向きの画像
+    kk_img_flip = pg.transform.flip(kk_img, True, False)  # 右向きの画像
+    kk_dict = {
+        (0, 0): pg.transform.rotozoom(kk_img, 0, 0.9),  # キー押下がない場合
+        (+5, 0): pg.transform.rotozoom(kk_img_flip, 0, 0.9),  # 右
+        (+5, -5): pg.transform.rotozoom(kk_img_flip, 45, 0.9),  # 右上
+        (0, -5): pg.transform.rotozoom(kk_img_flip, 90, 0.9),  # 上
+        (-5, -5): pg.transform.rotozoom(kk_img, -45, 0.9),  # 左上
+        (-5, 0): pg.transform.rotozoom(kk_img, 0, 0.9),  # 左
+        (-5, +5): pg.transform.rotozoom(kk_img, 45, 0.9),  # 左下
+        (0, +5): pg.transform.rotozoom(kk_img_flip, -90, 0.9),  # 下
+        (+5, +5): pg.transform.rotozoom(kk_img_flip, -45, 0.9),  # 右下
+    }
+    return kk_dict
 def main():
     pg.display.set_caption("逃げろ！こうかとん")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
@@ -67,6 +91,7 @@ def main():
     kk_img = pg.transform.rotozoom(pg.image.load("fig/3.png"), 0, 0.9)
     kk_rct = kk_img.get_rect()
     kk_rct.center = 300, 200
+    kk_imgs = get_kk_imgs()
     bb_imgs, bb_accs = init_bb_imgs()
     bb_img = bb_imgs[0]
     bb_rct = bb_img.get_rect()
@@ -88,6 +113,7 @@ def main():
             if key_lst[key]:
                 sum_mv[0] += mv[0]
                 sum_mv[1] += mv[1]
+                kk_img = kk_imgs[tuple(sum_mv)]  # 移動方向に合った画像を選ぶ
         kk_rct.move_ip(sum_mv)
         if check_bound(kk_rct) != (True, True): 
             kk_rct.move_ip(-sum_mv[0], -sum_mv[1])
