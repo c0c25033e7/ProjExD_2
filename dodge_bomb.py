@@ -11,8 +11,8 @@ DELTA = { # 押下キーと移動量の対応表
     pg.K_LEFT: (-5, 0),
     pg.K_RIGHT: (+5, 0),
 }
-
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
 def check_bound(obj_rct: pg.Rect) -> tuple[bool, bool]:
     """
     引数：こうかとんRectかばくだんRect
@@ -30,8 +30,7 @@ def gameover(screen: pg.Surface) -> None:
     """
     引数：画面Surface
     戻り値：なし
-    画面をブラックアウトし，泣いているこうかとんと
-    「Game Over」の文字を5秒間表示する
+    画面を暗転し「Gameover」と泣いているこうかとんを表示
     """
     bo_img = pg.Surface((WIDTH, HEIGHT))  # 黒い画面用の空Surface
     pg.draw.rect(bo_img, (0, 0, 0), (0, 0, WIDTH, HEIGHT))
@@ -85,9 +84,14 @@ def get_kk_imgs() -> dict[tuple[int, int], pg.Surface]:
         (+5, +5): pg.transform.rotozoom(kk_img_flip, -45, 0.9),  # 右下
     }
     return kk_dict
+
 def calc_orientation(org: pg.Rect, dst: pg.Rect, current_xy: tuple[float, float]) -> tuple[float, float]:
+    """
+    差ベクトルを、距離（ノルム）で割って向きだけにし，
+    元と同じ速さをかけて返す（距離に関係なく一定の速さで追いかける）
+    """
     diff_x = dst.centerx - org.centerx  # 爆弾から見たこうかとんの方向
-    diff_y = dst.centery - org.centery
+    diff_y = dst.centery - org.centery  # 同上（y）
     norm = math.hypot(diff_x, diff_y)  # 距離（差ベクトルのノルム）
     if norm < 300:  # 近すぎると即ゲームオーバーになるので，向きを変えない
         return current_xy
@@ -127,7 +131,6 @@ def main():
                 vx, vy = calc_orientation(bb_rct, kk_rct, (vx, vy))
         kk_rct.move_ip(sum_mv)
         if check_bound(kk_rct) != (True, True): 
-            
             kk_rct.move_ip(-sum_mv[0], -sum_mv[1])
         screen.blit(kk_img, kk_rct)
         idx = min(tmr // 500, 9)  # 500フレームごとに1段階進む
